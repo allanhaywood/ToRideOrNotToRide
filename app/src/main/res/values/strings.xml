@@ -10,4 +10,8 @@
 
     <string name="hello_world">Hello world!</string>
     <string name="title_activity_modify">ModifyActivity</string>
+    <string name="modifyTitle">Modify</string>
+    <string name="detailsTitle">Details</string>
+    <string name="addButton">Add</string>
+    <string name="removeButton">Remove</string>
 </resources>

@@ -38,10 +38,18 @@ public class MainActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    // Calls the Details activity.
-    private void ShowDetails(View view)
+    // Starts the Details activity.
+    public void ShowDetails(View view)
     {
         Intent intent = new Intent(MainActivity.this, DetailsActivity.class);
+
+        startActivity(intent);
+    }
+
+    // Starts the Modify activity.
+    public void ShowModify(View view)
+    {
+        Intent intent = new Intent(MainActivity.this, ModifyActivity.class);
 
         startActivity(intent);
     }

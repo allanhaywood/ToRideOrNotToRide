@@ -3,7 +3,7 @@ package applications.haywood.torideornottoride;
 
 import java.util.List;
 
-public class ZipCodeWeatherMinutely {
+public class Minutely {
     private List data;
 
     public List getData() {

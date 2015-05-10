@@ -3,7 +3,7 @@ package applications.haywood.torideornottoride;
 
 import java.util.List;
 
-public class ZipCodeWeatherFlags {
+public class Flags {
     private List darkskyStations;
     private List isdStations;
     private List lampStations;

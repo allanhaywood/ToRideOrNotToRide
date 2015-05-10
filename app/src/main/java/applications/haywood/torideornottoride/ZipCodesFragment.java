@@ -49,7 +49,7 @@ public class ZipCodesFragment extends Fragment {
         this.zipCodeStrings = this.GetZipCodeStrings();
         //this.adapter.clear();
         this.adapter.addAll(this.zipCodeStrings);
-        //this.adapter.notifyDataSetChanged();
+        this.adapter.notifyDataSetChanged();
     }
 
     private List<String> GetZipCodeStrings()

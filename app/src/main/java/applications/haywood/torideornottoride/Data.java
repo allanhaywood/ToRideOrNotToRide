@@ -1,7 +1,7 @@
 
 package applications.haywood.torideornottoride;
 
-public class ZipCodeWeatherData {
+public class Data {
     private Number precipIntensity;
     private Number precipProbability;
     private Number time;

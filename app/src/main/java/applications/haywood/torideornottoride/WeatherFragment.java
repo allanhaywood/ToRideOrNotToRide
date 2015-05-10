@@ -1,6 +1,6 @@
 package applications.haywood.torideornottoride;
 
-import android.app.ListFragment;
+import android.app.Fragment;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -14,7 +14,7 @@ import com.google.gson.Gson;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WeatherFragment extends ListFragment {
+public class WeatherFragment extends Fragment {
 
     private Gson gson = new Gson();
 
@@ -52,8 +52,9 @@ public class WeatherFragment extends ListFragment {
 
     public void RefreshView() {
         this.zipCodeWeathersStrings = this.GetWeatherStrings();
-        this.adapter.clear();
+        //this.adapter.clear();
         this.adapter.addAll(this.zipCodeWeathersStrings);
+        this.adapter.notifyDataSetChanged();
     }
 
     private List<String> GetWeatherStrings() {
@@ -76,10 +77,10 @@ public class WeatherFragment extends ListFragment {
 
             zipCodeWeather = gson.fromJson(weather, ZipCodeWeather.class);
             this.zipCodeWeathers.add(zipCodeWeather);
-            this.zipCodeWeathersStrings.add(String.format("%s %s %s %%",
+            this.zipCodeWeathersStrings.add(String.format("%s %s %s%%",
                     zipCode,
-                    zipCodeWeather.getZipCodeWeatherCurrently().getSummary(),
-                    zipCodeWeather.getZipCodeWeatherCurrently().getPrecipProbability()));
+                    zipCodeWeather.getCurrently().getSummary(),
+                    zipCodeWeather.getCurrently().getPrecipProbability()));
 
             weatherTable.moveToNext();
         }
@@ -94,7 +95,7 @@ public class WeatherFragment extends ListFragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        //zipCodes.close();
-        //weatherDb.close();
+        weatherTable.close();
+        weatherDb.close();
     }
 }

@@ -13,7 +13,7 @@ import com.readystatesoftware.sqliteasset.SQLiteAssetHelper;
 public class WeatherDb extends SQLiteAssetHelper {
 
     private static final String DATABASE_NAME = "weatherdb";
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
 
     public WeatherDb(Context context)
     {

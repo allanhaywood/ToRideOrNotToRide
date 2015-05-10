@@ -1,7 +1,7 @@
 
 package applications.haywood.torideornottoride;
 
-public class ZipCodeWeatherCurrently {
+public class Currently {
     private Number apparentTemperature;
     private Number cloudCover;
     private Number dewPoint;

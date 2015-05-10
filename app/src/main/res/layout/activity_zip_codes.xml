@@ -1,0 +1,77 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/zipCodeText"
+        android:id="@+id/textView3" />
+
+    <fragment android:name="applications.haywood.torideornottoride.ZipCodesFragment"
+        android:id="@+id/zipCodesFragment"
+        android:layout_weight="0.67"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        tools:layout="@layout/fragment_zip_codes"
+        android:layout_below="@+id/textView3"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentBottom="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/cityText"
+        android:id="@+id/textView4"
+        android:layout_above="@+id/zipCodesFragment"
+        android:layout_toRightOf="@+id/space"
+        android:layout_toEndOf="@+id/space" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/latitudeText"
+        android:id="@+id/textView5"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/longitudeText"
+        android:id="@+id/textView6"
+        android:layout_alignParentTop="true"
+        android:layout_toRightOf="@+id/space2" />
+
+    <Space
+        android:layout_width="20px"
+        android:layout_height="20px"
+        android:layout_above="@+id/zipCodesFragment"
+        android:layout_toRightOf="@+id/textView3"
+        android:layout_alignParentTop="true"
+        android:id="@+id/space" />
+
+    <Space
+        android:layout_width="20px"
+        android:layout_height="20px"
+        android:layout_above="@+id/zipCodesFragment"
+        android:layout_toRightOf="@+id/textView4"
+        android:layout_toEndOf="@+id/textView4"
+        android:layout_alignParentTop="true" />
+
+    <Space
+        android:layout_width="20px"
+        android:layout_height="20px"
+        android:layout_above="@+id/zipCodesFragment"
+        android:layout_alignParentTop="true"
+        android:layout_toRightOf="@+id/textView5"
+        android:id="@+id/space2" />
+
+</RelativeLayout>

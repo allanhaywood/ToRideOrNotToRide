@@ -9,9 +9,16 @@
     <string name="title_activity_details">DetailsActivity</string>
 
     <string name="hello_world">Hello world!</string>
+    <string name="showZipCodeDb">ShowZipCodeDB</string>
     <string name="title_activity_modify">ModifyActivity</string>
     <string name="modifyTitle">Modify</string>
     <string name="detailsTitle">Details</string>
     <string name="addButton">Add</string>
     <string name="removeButton">Remove</string>
+    <string name="title_activity_zip_codes">ZipCodesActivity</string>
+    <string name="title_activity_settings">SettingsActivity</string>
+    <string name="zipCodeText">ZipCode</string>
+    <string name="cityText">City</string>
+    <string name="latitudeText">Latitude</string>
+    <string name="longitudeText">Longitude</string>
 </resources>

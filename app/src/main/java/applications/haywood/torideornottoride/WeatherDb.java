@@ -12,7 +12,7 @@ import com.readystatesoftware.sqliteasset.SQLiteAssetHelper;
  */
 public class WeatherDb extends SQLiteAssetHelper {
 
-    private static final String DATABASE_NAME = "weatherdb.sqlite";
+    private static final String DATABASE_NAME = "weatherdb";
     private static final int DATABASE_VERSION = 1;
 
     public WeatherDb(Context context)
@@ -25,7 +25,7 @@ public class WeatherDb extends SQLiteAssetHelper {
         SQLiteDatabase db = getReadableDatabase();
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
 
-        String [] sqlSelect = {"0 _id", "Latitude", "Longitude", "City"};
+        String[] sqlSelect = {"_id", "Latitude", "Longitude", "City"};
         String sqlTables = "zipcodes";
 
         qb.setTables(sqlTables);

@@ -13,25 +13,40 @@ import com.readystatesoftware.sqliteasset.SQLiteAssetHelper;
 public class WeatherDb extends SQLiteAssetHelper {
 
     private static final String DATABASE_NAME = "weatherdb";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     public WeatherDb(Context context)
     {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        setForcedUpgrade();
     }
 
     public Cursor getZipCodes()
     {
-        SQLiteDatabase db = getReadableDatabase();
-        SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+        SQLiteDatabase database = getReadableDatabase();
+        SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
 
         String[] sqlSelect = {"_id", "Latitude", "Longitude", "City"};
         String sqlTables = "zipcodes";
 
-        qb.setTables(sqlTables);
-        Cursor c = qb.query(db, sqlSelect, null, null, null, null, null);
+        queryBuilder.setTables(sqlTables);
+        Cursor cursor = queryBuilder.query(database, sqlSelect, null, null, null, null, null);
 
-        c.moveToFirst();
-        return c;
+        cursor.moveToFirst();
+        return cursor;
+    }
+
+    public Cursor getWeather() {
+        SQLiteDatabase database = getReadableDatabase();
+        SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
+
+        String[] sqlSelect = {"_id", "WeatherJSON", "LastUpdate"};
+        String sqlTables = "weather";
+
+        queryBuilder.setTables(sqlTables);
+        Cursor cursor = queryBuilder.query(database, sqlSelect, null, null, null, null, null);
+
+        cursor.moveToFirst();
+        return cursor;
     }
 }

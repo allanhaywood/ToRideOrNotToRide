@@ -1,7 +1,7 @@
 package applications.haywood.torideornottoride;
 
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -12,6 +12,7 @@ public class ModifyActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_modify);
+        this.PopulateWeatherData();
     }
 
     @Override
@@ -34,5 +35,13 @@ public class ModifyActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void PopulateWeatherData() {
+        WeatherFragment weatherFragment = (WeatherFragment)
+                getFragmentManager().findFragmentById(
+                        R.id.weatherFragment);
+
+        weatherFragment.RefreshView();
     }
 }

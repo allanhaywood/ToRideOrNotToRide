@@ -18,11 +18,9 @@ import java.util.List;
  */
 public class ZipCodesFragment extends Fragment {
 
-    private ArrayAdapter<String> adapter;
-
     List<String> zipCodeStrings = new ArrayList<String>();
-
-    private Cursor zipCodes;
+    private ArrayAdapter<String> adapter;
+    private Cursor zipCodesTable;
     private WeatherDb weatherDb;
 
     public ZipCodesFragment() {
@@ -57,8 +55,7 @@ public class ZipCodesFragment extends Fragment {
     private List<String> GetZipCodeStrings()
     {
         weatherDb = new WeatherDb(this.getActivity().getApplicationContext());
-        zipCodes = weatherDb.getZipCodes();
-
+        zipCodesTable = weatherDb.getZipCodes();
 
         // Prepare variables to store column data
         String zipCode = "";
@@ -71,12 +68,12 @@ public class ZipCodesFragment extends Fragment {
 
         // Load zipcodes into table.
         Integer count = 0;
-        while (!zipCodes.isAfterLast())
+        while (!zipCodesTable.isAfterLast())
         {
-            zipCode = String.format("%05d", zipCodes.getInt(0));
-            latitude = zipCodes.getFloat(1);
-            longitude = zipCodes.getFloat(2);
-            city = zipCodes.getString(3);
+            zipCode = String.format("%05d", zipCodesTable.getInt(0));
+            latitude = zipCodesTable.getFloat(1);
+            longitude = zipCodesTable.getFloat(2);
+            city = zipCodesTable.getString(3);
 
             // If latitude or longitude is set to an invalid value or null, it is unknown.
             latitudeString = (Math.abs(latitude) > 90 || latitude == null) ? "Unknown" : Float.toString(latitude);
@@ -84,7 +81,7 @@ public class ZipCodesFragment extends Fragment {
 
             zipCodeStrings.add(String.format("%s %s %s %s", zipCode, city, latitudeString, longitudeString));
 
-            zipCodes.moveToNext();
+            zipCodesTable.moveToNext();
         }
 
         return zipCodeStrings;
@@ -94,7 +91,7 @@ public class ZipCodesFragment extends Fragment {
     public void onDestroy()
     {
         super.onDestroy();
-        zipCodes.close();
+        zipCodesTable.close();
         weatherDb.close();
     }
 }

@@ -21,4 +21,9 @@
     <string name="cityText">City</string>
     <string name="latitudeText">Latitude</string>
     <string name="longitudeText">Longitude</string>
+    <string name="title_activity_get_zip_code">GetZipCodeActivity</string>
+    <string name="SubmitButton">OK</string>
+    <string name="okButton">OK</string>
+    <string name="zipCodeHint">Enter ZipCode</string>
+    <string name="poweredByForecast">Powered By Forecast</string>
 </resources>

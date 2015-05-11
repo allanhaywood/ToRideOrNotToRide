@@ -1,6 +1,8 @@
 package applications.haywood.torideornottoride;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
@@ -10,10 +12,20 @@ import android.view.View;
 
 public class MainActivity extends ActionBarActivity {
 
+    public static final String FORECAST_URL = "http://forecast.io/";
+
+    private static Context myContext;
+
+    public static Context GetMyContext() {
+        return myContext;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ModifyActivity.updateMainActivity(this);
+        myContext = this.getApplicationContext();
     }
 
     @Override
@@ -67,5 +79,26 @@ public class MainActivity extends ActionBarActivity {
 
         startActivity(intent);
 
+    }
+
+    public void ShowForecastWebsite(View view) {
+        // Get the string from the URL textBox.
+        String url = MainActivity.FORECAST_URL;
+
+        // If the URL already starts wtih http:// or https:// there is nothing to do.
+        if ((url.startsWith("http://")) || (url.startsWith("https://"))) {
+            // Already full URL, do nothing.
+        }
+        // Otherwise, if it was not provided, add http://
+        else {
+            url = "http://" + url;
+        }
+
+        // Start the default web browser with the URL provided.
+        Intent intent = new Intent(Intent.ACTION_VIEW,
+                Uri.parse(url));
+        startActivity(intent);
+
+        finish();
     }
 }

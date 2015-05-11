@@ -23,27 +23,35 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_above="@+id/addButton"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_below="@+id/textView"
-        android:layout_weight="0.67"
+        android:layout_below="@id/textView"
         tools:layout="@layout/fragment_zip_codes" />
 
     <Button
         android:id="@+id/addButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_above="@+id/forecast"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
+        android:onClick="GetZipCode"
         android:text="@string/addButton" />
 
     <Button
         android:id="@+id/removeButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_above="@+id/forecast"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:text="@string/removeButton" />
+
+    <TextView
+        android:id="@+id/forecast"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:onClick="ShowForecastWebsite"
+        android:text="@string/poweredByForecast"
+        android:textAppearance="?android:attr/textAppearanceSmall" />
 </RelativeLayout>

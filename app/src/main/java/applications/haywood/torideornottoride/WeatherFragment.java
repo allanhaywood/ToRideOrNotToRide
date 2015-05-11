@@ -59,33 +59,7 @@ public class WeatherFragment extends Fragment {
 
     private List<String> GetWeatherStrings() {
         weatherDb = new WeatherDb(this.getActivity().getApplicationContext());
-        weatherTable = weatherDb.getWeather();
-
-        // Prepare variables to store column data
-        String zipCode = "";
-        String weather = "";
-        int lastUpdate = 0;
-
-        ZipCodeWeather zipCodeWeather;
-
-        // Load zipcodes into table.
-        Integer count = 0;
-        while (!weatherTable.isAfterLast()) {
-            zipCode = String.format("%05d", weatherTable.getInt(0));
-            weather = weatherTable.getString(1);
-            lastUpdate = weatherTable.getInt(2);
-
-            zipCodeWeather = gson.fromJson(weather, ZipCodeWeather.class);
-            this.zipCodeWeathers.add(zipCodeWeather);
-            this.zipCodeWeathersStrings.add(String.format("%s %s %s%%",
-                    zipCode,
-                    zipCodeWeather.getCurrently().getSummary(),
-                    zipCodeWeather.getCurrently().getPrecipProbability()));
-
-            weatherTable.moveToNext();
-        }
-
-        return zipCodeWeathersStrings;
+        return weatherDb.GetWeatherStrings();
     }
 
     public List<ZipCodeWeather> getZipCodeWeathers() {

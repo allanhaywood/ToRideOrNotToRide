@@ -55,36 +55,7 @@ public class ZipCodesFragment extends Fragment {
     private List<String> GetZipCodeStrings()
     {
         weatherDb = new WeatherDb(this.getActivity().getApplicationContext());
-        zipCodesTable = weatherDb.getZipCodes();
-
-        // Prepare variables to store column data
-        String zipCode = "";
-        Float latitude = 0.0F; // Using Float as it is nullable and this value is from a database.
-        Float longitude = 0.0F; // Using Float as it is nullable and this value is from a database.
-        String city = "";
-
-        String latitudeString = "";
-        String longitudeString = "";
-
-        // Load zipcodes into table.
-        Integer count = 0;
-        while (!zipCodesTable.isAfterLast())
-        {
-            zipCode = String.format("%05d", zipCodesTable.getInt(0));
-            latitude = zipCodesTable.getFloat(1);
-            longitude = zipCodesTable.getFloat(2);
-            city = zipCodesTable.getString(3);
-
-            // If latitude or longitude is set to an invalid value or null, it is unknown.
-            latitudeString = (Math.abs(latitude) > 90 || latitude == null) ? "Unknown" : Float.toString(latitude);
-            longitudeString = (Math.abs(longitude) > 180 || longitude == null) ? "Unknown" : Float.toString(longitude);
-
-            zipCodeStrings.add(String.format("%s %s %s %s", zipCode, city, latitudeString, longitudeString));
-
-            zipCodesTable.moveToNext();
-        }
-
-        return zipCodeStrings;
+        return weatherDb.GetZipCodesStrings();
     }
 
     @Override

@@ -90,9 +90,9 @@ public class ModifyActivity extends ActionBarActivity {
                 this.selectedHour = sharedPreferences.getInt(ModifyActivity.HOUR_PREFERENCE, 0);
                 this.selectedMinute = sharedPreferences.getInt(ModifyActivity.MINUTE_PREFERENCE, 0);
 
-                ZipCodeWeather zipCodeWeather = this.weatherManager.GetWeather(this.zipCodeToAdd, this.selectedHour, this.selectedMinute);
+                this.weatherManager.GetWeather(this.zipCodeToAdd, this.selectedHour, this.selectedMinute);
 
-                this.PopulateWeatherData();
+                //this.PopulateWeatherData();
             }
         }
     }

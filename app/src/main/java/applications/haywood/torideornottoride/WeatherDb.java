@@ -22,7 +22,7 @@ import java.util.List;
 public class WeatherDb extends SQLiteAssetHelper {
 
     private static final String DATABASE_NAME = "weatherdb";
-    private static final int DATABASE_VERSION = 6;
+    private static final int DATABASE_VERSION = 7;
 
     private static final String WEATHER_TABLE_NAME = "weather";
     private static final String ZIPCODES_TABLE_NAME = "zipcodes";
@@ -201,9 +201,9 @@ public class WeatherDb extends SQLiteAssetHelper {
 
         // Load zipcodes into table.
         while (!weatherTable.isAfterLast()) {
-            zipCode = String.format("%05d", weatherTable.getInt(0));
-            weather = weatherTable.getString(1);
-            lastUpdate = weatherTable.getInt(2);
+            zipCode = String.format("%05d", weatherTable.getInt(WEATHER_ZIPCODE));
+            weather = weatherTable.getString(WEATHER_JSON);
+            lastUpdate = weatherTable.getInt(WEATHER_LASTUPDATE);
 
             zipCodeWeather = gson.fromJson(weather, ZipCodeWeather.class);
             zipCodeWeatherStrings.add(String.format("%s %s %s%%",

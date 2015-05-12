@@ -14,6 +14,15 @@ public class ZipCodeWeather {
     private int lastUpdate;
     private int hour;
     private int minute;
+    private int zipCode;
+
+    public int getZipCode() {
+        return this.zipCode;
+    }
+
+    public void setZipCode(int zipCode) {
+        this.zipCode = zipCode;
+    }
 
     public int getLastUpdate() {
         return this.lastUpdate;

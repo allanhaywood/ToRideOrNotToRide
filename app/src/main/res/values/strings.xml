@@ -26,4 +26,6 @@
     <string name="okButton">OK</string>
     <string name="zipCodeHint">Enter ZipCode</string>
     <string name="poweredByForecast">Powered By Forecast</string>
+    <string name="timeText">Time</string>
+    <string name="weatherText">Weather</string>
 </resources>

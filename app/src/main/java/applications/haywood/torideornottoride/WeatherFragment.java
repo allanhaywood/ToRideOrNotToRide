@@ -22,14 +22,21 @@ public class WeatherFragment extends Fragment {
     private List<ZipCodeWeather> zipCodeWeathers = new ArrayList<ZipCodeWeather>();
     private ArrayAdapter<String> adapter;
 
+    private ListView listView;
+
     private Cursor weatherTable;
     private WeatherDb weatherDb;
+
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
      * fragment (e.g. upon screen orientation changes).
      */
     public WeatherFragment() {
+    }
+
+    public ListView GetListView() {
+        return this.listView;
     }
 
     @Override
@@ -43,16 +50,17 @@ public class WeatherFragment extends Fragment {
 
         View view = inflater.inflate(R.layout.fragment_zip_codes, container, false);
 
-        final ListView listView = (ListView) view.findViewById(
+        this.listView = (ListView) view.findViewById(
                 R.id.zipCodesView);
 
         listView.setAdapter(this.adapter);
+        listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
         return view;
     }
 
     public void RefreshView() {
         this.zipCodeWeathersStrings = this.GetWeatherStrings();
-        //this.adapter.clear();
+        this.adapter.clear();
         this.adapter.addAll(this.zipCodeWeathersStrings);
         this.adapter.notifyDataSetChanged();
     }
@@ -64,12 +72,5 @@ public class WeatherFragment extends Fragment {
 
     public List<ZipCodeWeather> getZipCodeWeathers() {
         return this.zipCodeWeathers;
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        weatherTable.close();
-        weatherDb.close();
     }
 }

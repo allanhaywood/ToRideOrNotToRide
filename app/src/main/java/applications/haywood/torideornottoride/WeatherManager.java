@@ -1,5 +1,6 @@
 package applications.haywood.torideornottoride;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -13,22 +14,27 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 
+import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.lang.ref.WeakReference;
 import java.util.Calendar;
+import java.util.List;
 
 /**
  * Created by ahaywood on 5/10/2015.
  */
 public class WeatherManager {
 
-    // NOTE: Find a way to not push the actual API key to github, and only fill it in at build time.
     private static final String SERVER_URL = "http://api.forecast.io/forecast/";
     private static final String SERVER_OPTIONS = "?exclude=[minutely,hourly,daily,alerts,flags]";
 
-    private static final String TAG = "WeatherManager";
+    // If a weather record is older than this many seconds, it will be updated, instaed of pulled from the db only.
+    private static final long AGE_TO_UPDATE = 600;
 
+    private static final String TAG = "WeatherManager";
+    private static WeakReference<Activity> modifyActivityWeakReference;
     private ZipCodeWeather zipCodeWeatherForecast;
     private Cursor zipCodeTable;
     private WeatherDb weatherDb;
@@ -43,6 +49,10 @@ public class WeatherManager {
         weatherDb = new WeatherDb(MainActivity.GetMyContext());
     }
 
+    public static void UpdateModifyActivity(Activity activity) {
+        modifyActivityWeakReference = new WeakReference<Activity>(activity);
+    }
+
     // Will first check the local database for a matching weather forecast.
     // If a match is found, and recent, it will simply return that.
     // If a match is found, but stale, it will pull the latest forecast data, update the db.
@@ -55,22 +65,64 @@ public class WeatherManager {
 
         zipCodeWeatherForecast = weatherDb.GetWeatherForecast(zipCode, hour, minute);
 
+        Log.d(WeatherManager.TAG, "Checking database for forecast data for: " + zipCode + " " + hour + minute);
+
         if (zipCodeWeatherForecast.getCurrently() == null) {
+            Log.d(WeatherManager.TAG, "No existing forecast found");
+
             ForecastFetcher forecastFetcher = new ForecastFetcher();
             forecastFetcher.SetForecastParameters(zipCode, hour, minute);
             forecastFetcher.execute();
+        } else {
+            if (this.LastUpdateIsOld(zipCodeWeatherForecast.getLastUpdate())) {
+                Log.d(WeatherManager.TAG, "old weather found, updating.");
+
+                ForecastFetcher forecastFetcher = new ForecastFetcher();
+                forecastFetcher.SetForecastParameters(zipCode, hour, minute);
+                forecastFetcher.execute();
+            }
         }
+    }
+
+    private boolean LastUpdateIsOld(int epochInSeconds) {
+        Calendar timeNow = Calendar.getInstance();
+        long nowEpochInSeconds = (timeNow.getTime().getTime() / 1000);
+        long timeDifference = (nowEpochInSeconds - (long) epochInSeconds);
+
+        // If time is older than the desired amount, return true.
+        return (timeDifference > WeatherManager.AGE_TO_UPDATE);
     }
 
     private void handlePostsJson(String jsonString) {
         this.jsonString = jsonString;
 
-        weatherDb.AddWeatherForecast(this.zipCode,
+        weatherDb.UpdateWeatherForecast(this.zipCode,
                 this.jsonString,
                 this.hour,
                 this.minute);
 
         Log.e(TAG, "JSON Handled");
+
+        // Update list on Modify screen.
+        final ModifyActivity modifyActivity = (ModifyActivity) WeatherManager.modifyActivityWeakReference.get();
+        modifyActivity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+
+                modifyActivity.PopulateWeatherData();
+            }
+        });
+    }
+
+    public void UpdateAllWeather() {
+        List<ZipCodeWeather> zipCodeWeatherList = this.weatherDb.GetAllWeatherForecast();
+
+        for (int i = 0; i < zipCodeWeatherList.size(); i++) {
+            this.GetWeather(
+                    zipCodeWeatherList.get(i).getZipCode(),
+                    zipCodeWeatherList.get(i).getHour(),
+                    zipCodeWeatherList.get(i).getMinute());
+        }
     }
 
     private class ForecastFetcher extends AsyncTask<Void, Void, String> {
@@ -85,6 +137,8 @@ public class WeatherManager {
             this.minute = minute;
         }
 
+        // TODO: Add automatic retry if http connection fails.
+        // TODO: https was not working, switched to http, fix and use https again.
         @Override
         protected String doInBackground(Void... params) {
             try {
@@ -102,10 +156,11 @@ public class WeatherManager {
                     try {
                         // Read teh server resposne and attempt to parse it as JSON
                         Reader reader = new InputStreamReader(inputStream);
-                        jsonString = reader.toString();
+                        BufferedReader bufferedReader = new BufferedReader(reader);
+                        jsonString = bufferedReader.readLine();
                         inputStream.close();
 
-                        Log.e(TAG, "Got JSON");
+                        Log.e(TAG, "Got JSON: " + jsonString);
                         handlePostsJson(jsonString);
 
                     } catch (Exception exception) {

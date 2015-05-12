@@ -57,12 +57,4 @@ public class ZipCodesFragment extends Fragment {
         weatherDb = new WeatherDb(this.getActivity().getApplicationContext());
         return weatherDb.GetZipCodesStrings();
     }
-
-    @Override
-    public void onDestroy()
-    {
-        super.onDestroy();
-        zipCodesTable.close();
-        weatherDb.close();
-    }
 }

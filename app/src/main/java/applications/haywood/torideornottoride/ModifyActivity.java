@@ -6,11 +6,15 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
+import android.util.SparseBooleanArray;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ListView;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class ModifyActivity extends ActionBarActivity {
@@ -30,15 +34,16 @@ public class ModifyActivity extends ActionBarActivity {
     // Name of the time preferences in the preferences store.
     public static final String MINUTE_PREFERENCE = "MINUTE_PREFERENCE";
 
-    private static WeakReference<Activity> activityWeakReference;
+    private static WeakReference<Activity> mainActivityWeakReference;
     private WeatherManager weatherManager;
+    private WeatherFragment weatherFragment;
 
     private int zipCodeToAdd;
     private int selectedHour;
     private int selectedMinute;
 
-    public static void updateMainActivity(Activity activity) {
-        activityWeakReference = new WeakReference<Activity>(activity);
+    public static void UpdateMainActivity(Activity activity) {
+        mainActivityWeakReference = new WeakReference<Activity>(activity);
     }
 
     @Override
@@ -46,6 +51,7 @@ public class ModifyActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_modify);
         this.PopulateWeatherData();
+        WeatherManager.UpdateModifyActivity(this);
         weatherManager = new WeatherManager(this.getApplicationContext());
     }
 
@@ -71,15 +77,15 @@ public class ModifyActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void PopulateWeatherData() {
-        WeatherFragment weatherFragment = (WeatherFragment)
+    public void PopulateWeatherData() {
+        this.weatherFragment = (WeatherFragment)
                 getFragmentManager().findFragmentById(
                         R.id.weatherFragment);
 
-        weatherFragment.RefreshView();
+        this.weatherFragment.RefreshView();
     }
 
-    // This method is automatically called when the GetUserName activity completes.
+    // This method is automatically called when the GetZipCode activity completes.
     // This facilitates getting and updating the title with the username entered.
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == ModifyActivity.ZIPCODE_REQUEST_CODE) {
@@ -108,8 +114,29 @@ public class ModifyActivity extends ActionBarActivity {
     }
 
     public void ShowForecastWebsite(View view) {
-        MainActivity mainActivity = (MainActivity) ModifyActivity.activityWeakReference.get();
+        MainActivity mainActivity = (MainActivity) ModifyActivity.mainActivityWeakReference.get();
 
         mainActivity.ShowForecastWebsite(view);
+    }
+
+    public void RemoveSelectedZipCodes(View view) {
+        List<String> itemsToRemove = new ArrayList<String>();
+
+        WeatherDb weatherDb = new WeatherDb(this);
+
+        ListView listView = this.weatherFragment.GetListView();
+        SparseBooleanArray checkedItems = listView.getCheckedItemPositions();
+
+        // Return the same strings that the WeatherDb provides, so it knowns which items to delete.
+        // TODO: Investigate more robust method.
+        for (int i = 0; i < listView.getCount(); i++) {
+            if (checkedItems.get(i)) {
+                itemsToRemove.add((String) listView.getItemAtPosition(i));
+            }
+        }
+
+        weatherDb.RemoveWeatherItems(itemsToRemove);
+
+        this.weatherFragment.RefreshView();
     }
 }

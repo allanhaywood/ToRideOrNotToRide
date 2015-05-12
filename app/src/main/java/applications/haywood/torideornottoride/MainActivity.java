@@ -24,8 +24,10 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        ModifyActivity.updateMainActivity(this);
+        ModifyActivity.UpdateMainActivity(this);
         myContext = this.getApplicationContext();
+        WeatherManager weatherManager = new WeatherManager(this);
+        weatherManager.UpdateAllWeather();
     }
 
     @Override

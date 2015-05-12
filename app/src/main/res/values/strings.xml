@@ -28,4 +28,5 @@
     <string name="poweredByForecast">Powered By Forecast</string>
     <string name="timeText">Time</string>
     <string name="weatherText">Weather</string>
+    <string name="refreshText">REFRESH</string>
 </resources>

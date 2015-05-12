@@ -16,7 +16,6 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class ModifyActivity extends ActionBarActivity {
 
     // Request code used to get results back from GetZipCodeActivity
@@ -82,7 +81,9 @@ public class ModifyActivity extends ActionBarActivity {
                 getFragmentManager().findFragmentById(
                         R.id.weatherFragment);
 
-        this.weatherFragment.RefreshView();
+        if (this.weatherFragment != null) {
+            this.weatherFragment.RefreshView();
+        }
     }
 
     // This method is automatically called when the GetZipCode activity completes.
@@ -137,6 +138,8 @@ public class ModifyActivity extends ActionBarActivity {
 
         weatherDb.RemoveWeatherItems(itemsToRemove);
 
-        this.weatherFragment.RefreshView();
+        if (this.weatherFragment != null) {
+            this.weatherFragment.RefreshView();
+        }
     }
 }

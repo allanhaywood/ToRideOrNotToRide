@@ -8,6 +8,7 @@ import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.TextView;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -15,6 +16,7 @@ public class MainActivity extends ActionBarActivity {
     public static final String FORECAST_URL = "http://forecast.io/";
 
     private static Context myContext;
+    private TextView statusTextView;
 
     public static Context GetMyContext() {
         return myContext;
@@ -26,8 +28,16 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
         ModifyActivity.UpdateMainActivity(this);
         myContext = this.getApplicationContext();
+        View myView = getWindow().getDecorView().findViewById(android.R.id.content);
+        this.UpdateAllWeather(myView);
+    }
+
+    public void UpdateAllWeather(View view) {
         WeatherManager weatherManager = new WeatherManager(this);
         weatherManager.UpdateAllWeather();
+        statusTextView = (TextView) findViewById(R.id.statusTextView);
+        Integer maxChanceRain = weatherManager.GetMaxChanceOfRain();
+        statusTextView.setText(String.format("%s%% Chance of Precipitation", maxChanceRain));
     }
 
     @Override

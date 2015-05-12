@@ -179,6 +179,8 @@ public class WeatherDb extends SQLiteAssetHelper {
                         cursor.getInt(WeatherDb.WEATHER_ZIPCODE));
 
                 zipCodeWeatherList.add(zipCodeWeather);
+
+                cursor.moveToNext();
             }
         }
 
@@ -215,6 +217,8 @@ public class WeatherDb extends SQLiteAssetHelper {
 
         // If the value is null, then there is no record
         if (id.contentEquals("-1")) {
+            Log.d(WeatherDb.TAG, "No record found, inserting new record");
+
             contentValues.put("ZipCode", zipCode);
             contentValues.put("WeatherJSON", weatherJson);
             contentValues.put("LastUpdate", (Calendar.getInstance().getTime().getTime() / 1000)); // Convert milliseconds to seconds.
@@ -223,14 +227,16 @@ public class WeatherDb extends SQLiteAssetHelper {
 
             returnValue = (int) this.sqLiteDatabaseWritable.insert(WeatherDb.WEATHER_TABLE_NAME, null, contentValues);
         } else {
+            Log.d(WeatherDb.TAG, "Record found, updating current record");
+
             contentValues.put("WeatherJSON", weatherJson);
             contentValues.put("LastUpdate", (Calendar.getInstance().getTime().getTime() / 1000)); // Convert milliseconds to seconds.
 
             returnValue = this.sqLiteDatabaseWritable.update(
                     WEATHER_TABLE_NAME,
                     contentValues,
-                    WeatherDb.WEATHER_ID_COLUMN + "=?",
-                    new String[]{id});
+                    WeatherDb.WEATHER_ID_COLUMN + "=" + id,
+                    null);
         }
     }
 
@@ -275,6 +281,9 @@ public class WeatherDb extends SQLiteAssetHelper {
         String time = "";
         String weather = "";
         int lastUpdate = 0;
+        String summary;
+        float chanceOfPrecipitation;
+
 
         ZipCodeWeather zipCodeWeather;
 
@@ -285,11 +294,19 @@ public class WeatherDb extends SQLiteAssetHelper {
             time = this.Convert24HourToAmPm(weatherTable.getInt(WEATHER_HOUR), weatherTable.getInt(WEATHER_MINUTE));
 
             zipCodeWeather = gson.fromJson(weather, ZipCodeWeather.class);
+            summary = zipCodeWeather.getCurrently().getSummary();
+            chanceOfPrecipitation = zipCodeWeather.getCurrently().getPrecipProbability().floatValue();
+
+            Log.d(WeatherDb.TAG, "zipcode: " + zipCode);
+            Log.d(WeatherDb.TAG, "time: " + time);
+            Log.d(WeatherDb.TAG, "summary: " + summary);
+            Log.d(WeatherDb.TAG, "POP: " + chanceOfPrecipitation);
+
             zipCodeWeatherStrings.add(String.format("%s %s %s %s%%",
                     zipCode,
                     time,
                     zipCodeWeather.getCurrently().getSummary(),
-                    zipCodeWeather.getCurrently().getPrecipProbability()));
+                    zipCodeWeather.getCurrently().getPrecipProbability().floatValue() * 100));
 
             weatherTable.moveToNext();
         }

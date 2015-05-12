@@ -31,9 +31,10 @@ public class WeatherManager {
     private static final String SERVER_OPTIONS = "?exclude=[minutely,hourly,daily,alerts,flags]";
 
     // If a weather record is older than this many seconds, it will be updated, instaed of pulled from the db only.
-    private static final long AGE_TO_UPDATE = 600;
-
+    private static final long AGE_TO_UPDATE = 60;
     private static final String TAG = "WeatherManager";
+    //Keep track of how many fetches are pending.
+    private static int numberOfFetches = 0;
     private static WeakReference<Activity> modifyActivityWeakReference;
     private ZipCodeWeather zipCodeWeatherForecast;
     private Cursor zipCodeTable;
@@ -88,6 +89,7 @@ public class WeatherManager {
         Calendar timeNow = Calendar.getInstance();
         long nowEpochInSeconds = (timeNow.getTime().getTime() / 1000);
         long timeDifference = (nowEpochInSeconds - (long) epochInSeconds);
+        Log.d(WeatherManager.TAG, "Time Difference is: " + timeDifference);
 
         // If time is older than the desired amount, return true.
         return (timeDifference > WeatherManager.AGE_TO_UPDATE);
@@ -103,15 +105,17 @@ public class WeatherManager {
 
         Log.e(TAG, "JSON Handled");
 
-        // Update list on Modify screen.
-        final ModifyActivity modifyActivity = (ModifyActivity) WeatherManager.modifyActivityWeakReference.get();
-        modifyActivity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
+        // Update list on Modify screen, only call if ModifyActivity is available.
+        if (WeatherManager.modifyActivityWeakReference != null) {
+            final ModifyActivity modifyActivity = (ModifyActivity) WeatherManager.modifyActivityWeakReference.get();
 
-                modifyActivity.PopulateWeatherData();
-            }
-        });
+            modifyActivity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    modifyActivity.PopulateWeatherData();
+                }
+            });
+        }
     }
 
     public void UpdateAllWeather() {
@@ -125,7 +129,31 @@ public class WeatherManager {
         }
     }
 
+    public int GetMaxChanceOfRain() {
+        List<ZipCodeWeather> zipCodeWeatherList = this.weatherDb.GetAllWeatherForecast();
+        ZipCodeWeather zipCodeWeather;
+
+        float maxPercentChanceRain = 0;
+        float checkingPercentChanceRain = 0;
+        for (int i = 0; i < zipCodeWeatherList.size(); i++) {
+            zipCodeWeather = zipCodeWeatherList.get(i);
+            checkingPercentChanceRain = zipCodeWeather.getCurrently().getPrecipProbability().floatValue();
+            Log.d(WeatherManager.TAG, "Checking against: " + checkingPercentChanceRain);
+            Log.d(WeatherManager.TAG, "Checking max: " + maxPercentChanceRain);
+            if (checkingPercentChanceRain > maxPercentChanceRain) {
+                maxPercentChanceRain = checkingPercentChanceRain;
+            }
+        }
+
+        Log.d(WeatherManager.TAG, "Resulting max: " + maxPercentChanceRain * 100);
+
+        return (int) (maxPercentChanceRain * 100);
+    }
+
     private class ForecastFetcher extends AsyncTask<Void, Void, String> {
+
+        private static final String TAG = "ForecastFetcher";
+
         String jsonString = "";
         private int zipCode;
         private int hour;
@@ -142,6 +170,19 @@ public class WeatherManager {
         @Override
         protected String doInBackground(Void... params) {
             try {
+                WeatherManager.numberOfFetches++;
+
+                // Queue up if there is more than one fetch being processed.
+                while (WeatherManager.numberOfFetches > 1) {
+                    Log.d(ForecastFetcher.TAG, "Waiting for other fetches to complete");
+
+                    try {
+                        Thread.currentThread().sleep(1000); // sleep for 1 second.
+                    } catch (InterruptedException ie) {
+                        Log.i(ForecastFetcher.TAG, "Thread interupted");
+                    }
+                }
+
                 // Create an HTTP client
                 HttpClient httpClient = new DefaultHttpClient();
                 String url = this.BuildUrl(zipCode, hour, minute);
@@ -162,13 +203,16 @@ public class WeatherManager {
 
                         Log.e(TAG, "Got JSON: " + jsonString);
                         handlePostsJson(jsonString);
+                        WeatherManager.numberOfFetches--;
 
                     } catch (Exception exception) {
                         Log.e(TAG, "Failed get JSON due to: " + exception);
+                        WeatherManager.numberOfFetches--;
                     }
                 }
             } catch (java.io.IOException exception) {
                 Log.e(WeatherManager.TAG, "Failed to send HTTP POST request due to: " + exception);
+                WeatherManager.numberOfFetches--;
             }
 
             return null;

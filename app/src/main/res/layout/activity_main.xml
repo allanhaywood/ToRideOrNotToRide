@@ -11,29 +11,18 @@
         android:id="@+id/statusTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/detailsButton"
+        android:layout_above="@+id/refreshButton"
         android:layout_centerHorizontal="true"
-        android:layout_marginBottom="37dp"
+        android:layout_marginBottom="20dp"
         android:text="@string/status"
         android:textAppearance="?android:attr/textAppearanceLarge" />
-
-    <Button
-        android:id="@+id/detailsButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="97dp"
-        android:onClick="ShowDetails"
-        android:text="@string/detailsButton" />
 
     <Button
         android:id="@+id/modifyButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_above="@+id/forecast"
         android:layout_centerHorizontal="true"
-        android:layout_marginBottom="43dp"
         android:onClick="ShowModify"
         android:text="@string/modifyButton" />
 
@@ -68,5 +57,15 @@
         android:onClick="ShowForecastWebsite"
         android:text="@string/poweredByForecast"
         android:textAppearance="?android:attr/textAppearanceSmall" />
+
+    <Button
+        android:id="@+id/refreshButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/modifyButton"
+        android:layout_centerHorizontal="true"
+        android:onClick="UpdateAllWeather"
+        android:text="@string/refreshText" />
+    />
 
 </RelativeLayout>

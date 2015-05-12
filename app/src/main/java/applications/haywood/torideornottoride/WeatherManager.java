@@ -108,13 +108,18 @@ public class WeatherManager {
         // Update list on Modify screen, only call if ModifyActivity is available.
         if (WeatherManager.modifyActivityWeakReference != null) {
             final ModifyActivity modifyActivity = (ModifyActivity) WeatherManager.modifyActivityWeakReference.get();
-
-            modifyActivity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    modifyActivity.PopulateWeatherData();
+            if (modifyActivity != null) {
+                try {
+                    modifyActivity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            modifyActivity.PopulateWeatherData();
+                        }
+                    });
+                } catch (Exception ex) {
+                    Log.d(WeatherManager.TAG, "Updating modify UI failed.");
                 }
-            });
+            }
         }
     }
 

@@ -15,7 +15,6 @@ import java.util.Calendar;
 import java.util.List;
 
 // TODO: Consolidate db open/close so it isn't repeated unecessarily.
-// TODO: Investigate implemnting as a singleton, will need to keep track of # of references, and only close
 // db when last use calls close.
 // All DB abstraction has to be here, there should be no Cursor uses outside of this class, there
 // should be no references to columns, or any other db specific entities outside of this class.
@@ -24,12 +23,9 @@ public class WeatherDb extends SQLiteAssetHelper {
 
     private static final String DATABASE_NAME = "weatherdb";
     private static final int DATABASE_VERSION = 13;
-
     private static final String WEATHER_TABLE_NAME = "weather";
     private static final String ZIPCODES_TABLE_NAME = "zipcodes";
-
     private static final String TAG = "WeatherDb";
-
     // Column indexes.
     // Weather table
     private static final int WEATHER_ID = 0;
@@ -41,33 +37,36 @@ public class WeatherDb extends SQLiteAssetHelper {
     private static final String WEATHER_ZIPCODE_COLUMN = "ZipCode";
     private static final String WEATHER_ORDERBY = "_id";
     private static final String WEATHER_ID_COLUMN = "_id";
-
     // Zipcode table
     private static final int ZIPCODE_ZIPCODE = 0;
     private static final int ZIPCODE_LATITUDE = 1;
     private static final int ZIPCODE_LONGITUDE = 2;
     private static final int ZIPCODE_CITY = 3;
-
-
-    private SQLiteDatabase sqLiteDatabaseReadable;
-    private SQLiteDatabase sqLiteDatabaseWritable;
+    private static WeatherDb singleInstance;
     private Gson gson;
 
-    public WeatherDb(Context context)
+    // Constructor is private to enforce using getSingleInstance instead, to guarantee only one accessor of the DB.
+    private WeatherDb(Context context)
     {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
 
         // This needs to be before any db access, and should only be used if any data in the phones older db can be lost.
         setForcedUpgrade();
 
-        // Open as writeable first so it can be upgraded if needed.
-        this.sqLiteDatabaseWritable = getWritableDatabase();
-        this.sqLiteDatabaseReadable = getReadableDatabase();
-
         this.gson = new Gson();
     }
 
-    private Cursor GetZipCodesTable()
+    public static synchronized WeatherDb getSingleInstance(Context context) {
+        // Use the application context, which will ensure that you
+        // don't accidentally leak an Activity's context.
+        // See this article for more information: http://bit.ly/6LRzfx
+        if (singleInstance == null) {
+            singleInstance = new WeatherDb(context.getApplicationContext());
+        }
+        return singleInstance;
+    }
+
+    private Cursor GetZipCodesTable(SQLiteDatabase sqLiteDatabaseWritable)
     {
         SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
 
@@ -75,14 +74,15 @@ public class WeatherDb extends SQLiteAssetHelper {
         String sqlTables = WeatherDb.ZIPCODES_TABLE_NAME;
 
         queryBuilder.setTables(sqlTables);
-        Cursor cursor = queryBuilder.query(this.sqLiteDatabaseReadable, sqlSelect, null, null, null, null, null);
+        Cursor cursor = queryBuilder.query(sqLiteDatabaseWritable, sqlSelect, null, null, null, null, null);
 
         cursor.moveToFirst();
         return cursor;
     }
 
     public List<String> GetZipCodesStrings() {
-        Cursor zipCodesTable = this.GetZipCodesTable();
+        SQLiteDatabase sqLiteDatabaseWritable = getWritableDatabase();
+        Cursor zipCodesTable = this.GetZipCodesTable(sqLiteDatabaseWritable);
         List<String> zipCodeStrings = new ArrayList<String>();
 
         // Prepare variables to store column data
@@ -110,10 +110,15 @@ public class WeatherDb extends SQLiteAssetHelper {
             zipCodesTable.moveToNext();
         }
 
+        zipCodesTable.close();
+
+        // Closes any update database objects.
+        super.close();
+
         return zipCodeStrings;
     }
 
-    private Cursor GetWeatherTable() {
+    private Cursor GetWeatherTable(SQLiteDatabase sqLiteDatabaseWritable) {
         SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
 
         String[] sqlProjection = {"_id", "ZipCode", "WeatherJSON", "LastUpdate", "Hour", "Minute"};
@@ -121,7 +126,7 @@ public class WeatherDb extends SQLiteAssetHelper {
 
         queryBuilder.setTables(weatherTable);
         Cursor cursor = queryBuilder.query(
-                this.sqLiteDatabaseReadable,
+                sqLiteDatabaseWritable,
                 sqlProjection,
                 null, null, null, null,
                 WeatherDb.WEATHER_ORDERBY); // Order by id
@@ -139,7 +144,8 @@ public class WeatherDb extends SQLiteAssetHelper {
         String sqlTables = WeatherDb.WEATHER_TABLE_NAME;
 
         queryBuilder.setTables(sqlTables);
-        Cursor cursor = queryBuilder.query(this.sqLiteDatabaseReadable, sqlProjection, sqlSelection, null, null, null, null);
+        SQLiteDatabase sqLiteDatabaseWritable = getWritableDatabase();
+        Cursor cursor = queryBuilder.query(sqLiteDatabaseWritable, sqlProjection, sqlSelection, null, null, null, null);
 
         if (cursor.getCount() != 0) {
             cursor.moveToFirst();
@@ -151,6 +157,11 @@ public class WeatherDb extends SQLiteAssetHelper {
                     cursor.getInt(WeatherDb.WEATHER_LASTUPDATE),
                     cursor.getInt(WeatherDb.WEATHER_ZIPCODE));
         }
+
+        cursor.close();
+
+        // Closes any update database objects.
+        super.close();
 
         return zipCodeWeather;
     }
@@ -165,7 +176,8 @@ public class WeatherDb extends SQLiteAssetHelper {
         String sqlTables = WeatherDb.WEATHER_TABLE_NAME;
 
         queryBuilder.setTables(sqlTables);
-        Cursor cursor = queryBuilder.query(this.sqLiteDatabaseReadable, sqlProjection, null, null, null, null, null);
+        SQLiteDatabase sqLiteDatabaseWritable = getWritableDatabase();
+        Cursor cursor = queryBuilder.query(sqLiteDatabaseWritable, sqlProjection, null, null, null, null, null);
 
         if (cursor.getCount() != 0) {
             cursor.moveToFirst();
@@ -184,6 +196,11 @@ public class WeatherDb extends SQLiteAssetHelper {
             }
         }
 
+        cursor.close();
+
+        // Closes any update database objects.
+        super.close();
+
         return zipCodeWeatherList;
     }
 
@@ -200,47 +217,68 @@ public class WeatherDb extends SQLiteAssetHelper {
 
     // If the entry already exists, it will update the json string and lastupdate value.
     // If the entry doesn't already exist, it will create a new one.
-    public void UpdateWeatherForecast(int zipCode, String weatherJson, int hour, int minute) {
+    public synchronized void UpdateWeatherForecast(int zipCode, String weatherJson, int hour, int minute) {
         Log.d(WeatherDb.TAG, "Receving new weather forecast");
         Log.d(WeatherDb.TAG, "zipcode: " + zipCode);
         Log.d(WeatherDb.TAG, "weatherJson: " + weatherJson);
         Log.d(WeatherDb.TAG, "hour: " + hour);
         Log.d(WeatherDb.TAG, "minute: " + minute);
 
-        String id = this.GetIdForWeatherRecord(zipCode, hour, minute);
-
-        Log.d(WeatherDb.TAG, "Checking database for forecast data for: " + zipCode + " " + hour + minute);
-
         int returnValue;
 
         ContentValues contentValues = new ContentValues();
 
+        Calendar calendar = Calendar.getInstance();
+        int currentEpochTimeInSeconds = (int) (calendar.getTime().getTime() / 1000);
+
+        String id = this.GetIdForWeatherRecord(zipCode, hour, minute);
+        SQLiteDatabase sqLiteDatabaseWritable = getWritableDatabase();
         // If the value is null, then there is no record
         if (id.contentEquals("-1")) {
             Log.d(WeatherDb.TAG, "No record found, inserting new record");
-
             contentValues.put("ZipCode", zipCode);
             contentValues.put("WeatherJSON", weatherJson);
-            contentValues.put("LastUpdate", (Calendar.getInstance().getTime().getTime() / 1000)); // Convert milliseconds to seconds.
+            contentValues.put("LastUpdate", currentEpochTimeInSeconds);
             contentValues.put("Hour", hour);
             contentValues.put("Minute", minute);
 
-            returnValue = (int) this.sqLiteDatabaseWritable.insert(WeatherDb.WEATHER_TABLE_NAME, null, contentValues);
+            sqLiteDatabaseWritable.beginTransaction();
+            returnValue = (int) sqLiteDatabaseWritable.insert(WeatherDb.WEATHER_TABLE_NAME, null, contentValues);
+            sqLiteDatabaseWritable.setTransactionSuccessful();
+            sqLiteDatabaseWritable.endTransaction();
         } else {
             Log.d(WeatherDb.TAG, "Record found, updating current record");
 
             contentValues.put("WeatherJSON", weatherJson);
-            contentValues.put("LastUpdate", (Calendar.getInstance().getTime().getTime() / 1000)); // Convert milliseconds to seconds.
+            contentValues.put("LastUpdate", currentEpochTimeInSeconds);
 
-            returnValue = this.sqLiteDatabaseWritable.update(
+            sqLiteDatabaseWritable.beginTransaction();
+            returnValue = sqLiteDatabaseWritable.update(
                     WEATHER_TABLE_NAME,
                     contentValues,
                     WeatherDb.WEATHER_ID_COLUMN + "=" + id,
                     null);
+            sqLiteDatabaseWritable.setTransactionSuccessful();
+            sqLiteDatabaseWritable.endTransaction();
         }
+
+        // Closes any update database objects.
+        super.close();
+
+        // Validate change
+        this.ValidateRecord(zipCode, weatherJson, hour, minute, currentEpochTimeInSeconds);
     }
 
-    private Cursor GetZipCodeRecord(int zipCode) {
+    private void ValidateRecord(int zipCode, String weatherJson, int hour, int minute, int currentEpochTimeInSeconds) {
+        Log.d(WeatherDb.TAG, "Validating Record...");
+        ZipCodeWeather zipCodeWeather = this.GetWeatherForecast(zipCode, hour, minute);
+        Log.d(WeatherDb.TAG, "ZipCode Correct: " + (zipCodeWeather.getZipCode() == zipCode));
+        Log.d(WeatherDb.TAG, "Hour Correct: " + (zipCodeWeather.getHour() == hour));
+        Log.d(WeatherDb.TAG, "Minute Correct: " + (zipCodeWeather.getMinute() == minute));
+        Log.d(WeatherDb.TAG, "LastUpdate Correct: " + (zipCodeWeather.getLastUpdate() == currentEpochTimeInSeconds));
+    }
+
+    private Cursor GetZipCodeRecord(SQLiteDatabase sqLiteDatabaseWritable, int zipCode) {
         SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
 
         String[] sqlProjection = {"_id", "Latitude", "Longitude", "City"};
@@ -248,7 +286,7 @@ public class WeatherDb extends SQLiteAssetHelper {
         String sqlTables = WeatherDb.ZIPCODES_TABLE_NAME;
 
         queryBuilder.setTables(sqlTables);
-        Cursor cursor = queryBuilder.query(this.sqLiteDatabaseReadable, sqlProjection, sqlSelection, null, null, null, null);
+        Cursor cursor = queryBuilder.query(sqLiteDatabaseWritable, sqlProjection, sqlSelection, null, null, null, null);
 
         cursor.moveToFirst();
         return cursor;
@@ -256,17 +294,27 @@ public class WeatherDb extends SQLiteAssetHelper {
 
     // Returns the coordinates of the zipcode in the format "latitude,longitude"
     public String GetZipCodeCoordinates(int zipCode) {
-        Cursor cursor = this.GetZipCodeRecord(zipCode);
-        Log.d(WeatherDb.TAG, "Getting Coordinates for zipcode:" + cursor.getInt(WeatherDb.ZIPCODE_ZIPCODE));
-        Log.d(WeatherDb.TAG, "Getting Coordinates for city:" + cursor.getString(WeatherDb.ZIPCODE_CITY));
-        Log.d(WeatherDb.TAG, "Latitude for city:" + cursor.getFloat(WeatherDb.ZIPCODE_LATITUDE));
-        Log.d(WeatherDb.TAG, "Longitude for city:" + cursor.getFloat(WeatherDb.ZIPCODE_LONGITUDE));
+        SQLiteDatabase sqLiteDatabaseWritable = getWritableDatabase();
+        Cursor cursor = this.GetZipCodeRecord(sqLiteDatabaseWritable, zipCode);
 
-        String coordinates = String.format("%s,%s",
-                cursor.getFloat(WeatherDb.ZIPCODE_LATITUDE),
-                cursor.getFloat(WeatherDb.ZIPCODE_LONGITUDE));
+        String coordinates = null;
+        if (cursor.getCount() != 0) {
+            Log.d(WeatherDb.TAG, "Getting Coordinates for zipcode:" + cursor.getInt(WeatherDb.ZIPCODE_ZIPCODE));
+            Log.d(WeatherDb.TAG, "Getting Coordinates for city:" + cursor.getString(WeatherDb.ZIPCODE_CITY));
+            Log.d(WeatherDb.TAG, "Latitude for city:" + cursor.getFloat(WeatherDb.ZIPCODE_LATITUDE));
+            Log.d(WeatherDb.TAG, "Longitude for city:" + cursor.getFloat(WeatherDb.ZIPCODE_LONGITUDE));
 
-        Log.d(WeatherDb.TAG, "Coordinates for city:" + coordinates);
+            coordinates = String.format("%s,%s",
+                    cursor.getFloat(WeatherDb.ZIPCODE_LATITUDE),
+                    cursor.getFloat(WeatherDb.ZIPCODE_LONGITUDE));
+
+            Log.d(WeatherDb.TAG, "Coordinates for city:" + coordinates);
+
+            cursor.close();
+
+            // Closes any update database objects.
+            super.close();
+        }
 
         return coordinates;
     }
@@ -274,7 +322,8 @@ public class WeatherDb extends SQLiteAssetHelper {
     public List<String> GetWeatherStrings() {
         List<String> zipCodeWeatherStrings = new ArrayList<String>();
 
-        Cursor weatherTable = this.GetWeatherTable();
+        SQLiteDatabase sqLiteDatabaseWritable = getWritableDatabase();
+        Cursor weatherTable = this.GetWeatherTable(sqLiteDatabaseWritable);
 
         // Prepare variables to store column data
         String zipCode = "";
@@ -311,6 +360,11 @@ public class WeatherDb extends SQLiteAssetHelper {
             weatherTable.moveToNext();
         }
 
+        weatherTable.close();
+
+        // Closes any update database objects.
+        super.close();
+
         return zipCodeWeatherStrings;
     }
 
@@ -332,19 +386,6 @@ public class WeatherDb extends SQLiteAssetHelper {
                 ampm);
     }
 
-    @Override
-    public synchronized void close() {
-        if (sqLiteDatabaseWritable != null) {
-            sqLiteDatabaseWritable.close();
-        }
-
-        if (sqLiteDatabaseReadable != null) {
-            sqLiteDatabaseReadable.close();
-        }
-
-        super.close();
-    }
-
     // Removes the specified items, using the same strings that WeatherDb provides as identification.
     // TODO: Investigate better method
     public void RemoveWeatherItems(List<String> itemsToRemove) {
@@ -363,10 +404,14 @@ public class WeatherDb extends SQLiteAssetHelper {
 
             Log.d(WeatherDb.TAG, "Id to be deleted: " + idValue);
 
-            this.sqLiteDatabaseWritable.delete(
+            SQLiteDatabase sqLiteDatabaseWritable = getWritableDatabase();
+            sqLiteDatabaseWritable.delete(
                     WeatherDb.WEATHER_TABLE_NAME,
                     WeatherDb.WEATHER_ID_COLUMN + "=?",
                     new String[]{idValue});
+
+            // Closes any update database objects.
+            super.close();
         }
     }
 
@@ -387,13 +432,19 @@ public class WeatherDb extends SQLiteAssetHelper {
                 hour,
                 minute);
 
-        cursor = queryBuilder.query(this.sqLiteDatabaseReadable, sqlProjection, sqlSelection, null, null, null, null);
+        SQLiteDatabase sqLiteDatabaseWritable = getWritableDatabase();
+        cursor = queryBuilder.query(sqLiteDatabaseWritable, sqlProjection, sqlSelection, null, null, null, null);
 
         if (cursor.getCount() != 0) {
             cursor.moveToFirst();
             Long id = cursor.getLong(WeatherDb.WEATHER_ID);
             result = id.toString();
         }
+
+        cursor.close();
+
+        // Closes any update database objects.
+        super.close();
 
         return result;
     }

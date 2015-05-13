@@ -21,7 +21,6 @@ public class ZipCodesFragment extends Fragment {
     List<String> zipCodeStrings = new ArrayList<String>();
     private ArrayAdapter<String> adapter;
     private Cursor zipCodesTable;
-    private WeatherDb weatherDb;
 
     public ZipCodesFragment() {
     }
@@ -54,7 +53,7 @@ public class ZipCodesFragment extends Fragment {
 
     private List<String> GetZipCodeStrings()
     {
-        weatherDb = new WeatherDb(this.getActivity().getApplicationContext());
+        WeatherDb weatherDb = WeatherDb.getSingleInstance(this.getActivity().getApplicationContext());
         return weatherDb.GetZipCodesStrings();
     }
 }

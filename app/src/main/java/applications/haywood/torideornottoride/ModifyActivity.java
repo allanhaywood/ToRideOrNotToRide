@@ -11,6 +11,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -32,6 +33,8 @@ public class ModifyActivity extends ActionBarActivity {
 
     // Name of the time preferences in the preferences store.
     public static final String MINUTE_PREFERENCE = "MINUTE_PREFERENCE";
+
+    private static final CharSequence INTEGER_PARSE_ERROR = "Invalid entry, try again.";
 
     private static WeakReference<Activity> mainActivityWeakReference;
     private WeatherManager weatherManager;
@@ -93,7 +96,14 @@ public class ModifyActivity extends ActionBarActivity {
             if (resultCode == RESULT_OK) {
                 // Retrieve the zipcode stored in the shared preferences.
                 SharedPreferences sharedPreferences = getSharedPreferences(ModifyActivity.SHARED_PREFERENCES, Context.MODE_PRIVATE);
-                this.zipCodeToAdd = Integer.parseInt(sharedPreferences.getString(ModifyActivity.ZIPCODE_PREFERENCE, null));
+                try {
+                    this.zipCodeToAdd = Integer.parseInt(sharedPreferences.getString(ModifyActivity.ZIPCODE_PREFERENCE, null));
+                } catch (java.lang.NumberFormatException exception) {
+                    // Invalid integer and zipcode
+                    int duration = Toast.LENGTH_LONG;
+                    Toast toast = Toast.makeText(this.getApplicationContext(), ModifyActivity.INTEGER_PARSE_ERROR, duration);
+                    toast.show();
+                }
                 this.selectedHour = sharedPreferences.getInt(ModifyActivity.HOUR_PREFERENCE, 0);
                 this.selectedMinute = sharedPreferences.getInt(ModifyActivity.MINUTE_PREFERENCE, 0);
 
@@ -123,7 +133,7 @@ public class ModifyActivity extends ActionBarActivity {
     public void RemoveSelectedZipCodes(View view) {
         List<String> itemsToRemove = new ArrayList<String>();
 
-        WeatherDb weatherDb = new WeatherDb(this);
+        WeatherDb weatherDb = WeatherDb.getSingleInstance(this);
 
         ListView listView = this.weatherFragment.GetListView();
         SparseBooleanArray checkedItems = listView.getCheckedItemPositions();

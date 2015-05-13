@@ -6,6 +6,7 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -29,25 +30,25 @@ public class WeatherManager {
 
     private static final String SERVER_URL = "http://api.forecast.io/forecast/";
     private static final String SERVER_OPTIONS = "?exclude=[minutely,hourly,daily,alerts,flags]";
+    private static final CharSequence ZIP_CODE_ERROR = "Zip Code Not Found, try again";
 
     // If a weather record is older than this many seconds, it will be updated, instaed of pulled from the db only.
     private static final long AGE_TO_UPDATE = 60;
     private static final String TAG = "WeatherManager";
     //Keep track of how many fetches are pending.
-    private static int numberOfFetches = 0;
     private static WeakReference<Activity> modifyActivityWeakReference;
     private ZipCodeWeather zipCodeWeatherForecast;
     private Cursor zipCodeTable;
-    private WeatherDb weatherDb;
     private Resources resources;
     private String jsonString;
     private int zipCode;
     private int hour;
     private int minute;
+    private Context context;
 
     public WeatherManager(Context context) {
         resources = context.getResources();
-        weatherDb = new WeatherDb(MainActivity.GetMyContext());
+        this.context = context;
     }
 
     public static void UpdateModifyActivity(Activity activity) {
@@ -64,6 +65,7 @@ public class WeatherManager {
         this.hour = hour;
         this.minute = minute;
 
+        WeatherDb weatherDb = WeatherDb.getSingleInstance(this.context);
         zipCodeWeatherForecast = weatherDb.GetWeatherForecast(zipCode, hour, minute);
 
         Log.d(WeatherManager.TAG, "Checking database for forecast data for: " + zipCode + " " + hour + minute);
@@ -81,11 +83,14 @@ public class WeatherManager {
                 ForecastFetcher forecastFetcher = new ForecastFetcher();
                 forecastFetcher.SetForecastParameters(zipCode, hour, minute);
                 forecastFetcher.execute();
+            } else {
+                Log.d(WeatherManager.TAG, "Weather data is recent, no need to update.");
             }
         }
     }
 
     private boolean LastUpdateIsOld(int epochInSeconds) {
+        Log.d(WeatherManager.TAG, "Aging time: " + WeatherManager.AGE_TO_UPDATE);
         Calendar timeNow = Calendar.getInstance();
         long nowEpochInSeconds = (timeNow.getTime().getTime() / 1000);
         long timeDifference = (nowEpochInSeconds - (long) epochInSeconds);
@@ -95,13 +100,14 @@ public class WeatherManager {
         return (timeDifference > WeatherManager.AGE_TO_UPDATE);
     }
 
-    private void handlePostsJson(String jsonString) {
-        this.jsonString = jsonString;
+    private synchronized void handlePostsJson(int zipCode, String jsonString, int hour, int minute) {
+        jsonString = jsonString;
 
-        weatherDb.UpdateWeatherForecast(this.zipCode,
-                this.jsonString,
-                this.hour,
-                this.minute);
+        WeatherDb weatherDb = WeatherDb.getSingleInstance(this.context);
+        weatherDb.UpdateWeatherForecast(zipCode,
+                jsonString,
+                hour,
+                minute);
 
         Log.e(TAG, "JSON Handled");
 
@@ -124,7 +130,8 @@ public class WeatherManager {
     }
 
     public void UpdateAllWeather() {
-        List<ZipCodeWeather> zipCodeWeatherList = this.weatherDb.GetAllWeatherForecast();
+        WeatherDb weatherDb = WeatherDb.getSingleInstance(this.context);
+        List<ZipCodeWeather> zipCodeWeatherList = weatherDb.GetAllWeatherForecast();
 
         for (int i = 0; i < zipCodeWeatherList.size(); i++) {
             this.GetWeather(
@@ -135,7 +142,8 @@ public class WeatherManager {
     }
 
     public int GetMaxChanceOfRain() {
-        List<ZipCodeWeather> zipCodeWeatherList = this.weatherDb.GetAllWeatherForecast();
+        WeatherDb weatherDb = WeatherDb.getSingleInstance(this.context);
+        List<ZipCodeWeather> zipCodeWeatherList = weatherDb.GetAllWeatherForecast();
         ZipCodeWeather zipCodeWeather;
 
         float maxPercentChanceRain = 0;
@@ -173,68 +181,75 @@ public class WeatherManager {
         // TODO: Add automatic retry if http connection fails.
         // TODO: https was not working, switched to http, fix and use https again.
         @Override
-        protected String doInBackground(Void... params) {
+        protected synchronized String doInBackground(Void... params) {
             try {
-                WeatherManager.numberOfFetches++;
-
-                // Queue up if there is more than one fetch being processed.
-                while (WeatherManager.numberOfFetches > 1) {
-                    Log.d(ForecastFetcher.TAG, "Waiting for other fetches to complete");
-
-                    try {
-                        Thread.currentThread().sleep(1000); // sleep for 1 second.
-                    } catch (InterruptedException ie) {
-                        Log.i(ForecastFetcher.TAG, "Thread interupted");
-                    }
-                }
-
                 // Create an HTTP client
                 HttpClient httpClient = new DefaultHttpClient();
                 String url = this.BuildUrl(zipCode, hour, minute);
-                HttpPost httpPost = new HttpPost(url);
+                if (url != null) {
+                    HttpPost httpPost = new HttpPost(url);
 
-                HttpResponse response = httpClient.execute(httpPost);
-                StatusLine statusLine = response.getStatusLine();
-                if (statusLine.getStatusCode() == 200) {
-                    HttpEntity httpEntity = response.getEntity();
-                    InputStream inputStream = httpEntity.getContent();
+                    HttpResponse response = httpClient.execute(httpPost);
+                    StatusLine statusLine = response.getStatusLine();
+                    if (statusLine.getStatusCode() == 200) {
+                        HttpEntity httpEntity = response.getEntity();
+                        InputStream inputStream = httpEntity.getContent();
 
-                    try {
-                        // Read teh server resposne and attempt to parse it as JSON
-                        Reader reader = new InputStreamReader(inputStream);
-                        BufferedReader bufferedReader = new BufferedReader(reader);
-                        jsonString = bufferedReader.readLine();
-                        inputStream.close();
+                        try {
+                            // Read the server resposne and attempt to parse it as JSON
+                            Reader reader = new InputStreamReader(inputStream);
+                            BufferedReader bufferedReader = new BufferedReader(reader);
+                            jsonString = bufferedReader.readLine();
+                            inputStream.close();
 
-                        Log.e(TAG, "Got JSON: " + jsonString);
-                        handlePostsJson(jsonString);
-                        WeatherManager.numberOfFetches--;
+                            Log.e(TAG, "Got JSON: " + jsonString);
+                            handlePostsJson(zipCode, jsonString, hour, minute);
 
-                    } catch (Exception exception) {
-                        Log.e(TAG, "Failed get JSON due to: " + exception);
-                        WeatherManager.numberOfFetches--;
+                        } catch (Exception exception) {
+                            Log.e(TAG, "Failed get JSON due to: " + exception);
+                        }
+                    }
+                } else {
+                    final ModifyActivity modifyActivity = (ModifyActivity) WeatherManager.modifyActivityWeakReference.get();
+                    if (modifyActivity != null) {
+                        try {
+                            modifyActivity.runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    int duration = Toast.LENGTH_LONG;
+                                    Toast toast = Toast.makeText(context, WeatherManager.ZIP_CODE_ERROR, duration);
+                                    toast.show();
+                                }
+                            });
+                        } catch (Exception ex) {
+                            Log.d(WeatherManager.TAG, "Updating modify UI failed.");
+                        }
                     }
                 }
             } catch (java.io.IOException exception) {
                 Log.e(WeatherManager.TAG, "Failed to send HTTP POST request due to: " + exception);
-                WeatherManager.numberOfFetches--;
             }
 
             return null;
         }
 
         private String BuildUrl(int zipCode, int hour, int minute) {
+
+            String url = null;
             // Combine all values to create the relevant URL to obtain the weather forecast data.
             String apikey = resources.getString(R.string.forecast_apikey);
+            WeatherDb weatherDb = WeatherDb.getSingleInstance(context);
             String coordinates = weatherDb.GetZipCodeCoordinates(zipCode);
-            String epochTime = this.GmtGetEpochTimeInSeconds(hour, minute);
+            if (coordinates != null) {
+                String epochTime = this.GmtGetEpochTimeInSeconds(hour, minute);
 
-            String url = String.format("%s%s/%s,%s%s",
-                    WeatherManager.SERVER_URL,
-                    apikey,
-                    coordinates,
-                    epochTime,
-                    WeatherManager.SERVER_OPTIONS);
+                url = String.format("%s%s/%s,%s%s",
+                        WeatherManager.SERVER_URL,
+                        apikey,
+                        coordinates,
+                        epochTime,
+                        WeatherManager.SERVER_OPTIONS);
+            }
 
             return url;
         }

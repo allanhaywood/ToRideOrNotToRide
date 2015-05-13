@@ -28,8 +28,13 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
         ModifyActivity.UpdateMainActivity(this);
         myContext = this.getApplicationContext();
+    }
+
+    @Override
+    protected void onResume() {
         View myView = getWindow().getDecorView().findViewById(android.R.id.content);
         this.UpdateAllWeather(myView);
+        super.onResume();
     }
 
     public void UpdateAllWeather(View view) {
@@ -113,4 +118,15 @@ public class MainActivity extends ActionBarActivity {
 
         finish();
     }
+
+/*
+    @Override
+    protected void onDestroy()
+    {
+        // Close the weatherDB when the app closes.
+        WeatherDb weatherDb = WeatherDb.getSingleInstance(this);
+        weatherDb.close();
+        super.onDestroy();
+    }
+*/
 }

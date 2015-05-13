@@ -25,8 +25,6 @@ public class WeatherFragment extends Fragment {
     private ListView listView;
 
     private Cursor weatherTable;
-    private WeatherDb weatherDb;
-
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -66,7 +64,7 @@ public class WeatherFragment extends Fragment {
     }
 
     private List<String> GetWeatherStrings() {
-        weatherDb = new WeatherDb(this.getActivity().getApplicationContext());
+        WeatherDb weatherDb = WeatherDb.getSingleInstance(this.getActivity().getApplicationContext());
         return weatherDb.GetWeatherStrings();
     }
 
